@@ -78,6 +78,7 @@ def _kernel_build_config_settings_raw():
             "_kasan_sw_tags": "//build/kernel/kleaf:kasan_sw_tags",
             "_kcsan": "//build/kernel/kleaf:kcsan",
             "_preserve_kbuild_output": "//build/kernel/kleaf:preserve_kbuild_output",
+            "_disable_32bit": "//build/kernel/kleaf:disable_32bit",
         },
     )
 
@@ -95,6 +96,7 @@ def _kernel_config_config_settings_raw():
             "kasan_sw_tags": "//build/kernel/kleaf:kasan_sw_tags",
             "kcsan": "//build/kernel/kleaf:kcsan",
             "gcov": "//build/kernel/kleaf:gcov",
+            "disable_32bit": "//build/kernel/kleaf:disable_32bit",
         },
     )
 

@@ -420,6 +420,21 @@ def _config_kcsan(ctx):
     ]
     return struct(configs = configs, deps = [])
 
+def _config_disable_32bit(ctx):
+    disable_32bit = ctx.attr.disable_32bit[BuildSettingInfo].value
+
+    if not disable_32bit:
+        return struct(configs = [], deps = [])
+
+    configs = [
+        _config.disable("COMPAT"),
+        _config.disable("COMPAT_32BIT_TIME"),
+        _config.set_val("DEFAULT_MMAP_MIN_ADDR", 65536),
+        _config.set_val("LSM_MMAP_MIN_ADDR", 65536),
+    ]
+
+    return struct(configs = configs, deps = [])
+
 def _reconfig(ctx):
     """Return a command and extra inputs to re-configure `.config` file."""
     configs = []
@@ -438,6 +453,7 @@ def _reconfig(ctx):
         _config_kasan_sw_tags,
         _config_gcov,
         _config_keys,
+        _config_disable_32bit,
         kgdb.get_scripts_config_args,
     ):
         pair = fn(ctx)
