@@ -62,3 +62,6 @@ build --flag_alias=gen_ddk_headers_gen_files_archives=//build/kernel/kleaf:gen_d
 # flags that controls prebuilts
 build --flag_alias=use_prebuilt_gki=//build/kernel/kleaf:use_prebuilt_gki
 build --flag_alias=use_signed_prebuilts=//build/kernel/kleaf:use_signed_prebuilts
+
+# flag for disabling 32bit support
+build --flag_alias=disable_32bit=//build/kernel/kleaf:disable_32bit
