@@ -65,3 +65,6 @@ build --flag_alias=use_signed_prebuilts=//build/kernel/kleaf:use_signed_prebuilt
 
 # flag for disabling 32bit support
 build --flag_alias=disable_32bit=//build/kernel/kleaf:disable_32bit
+
+# flag for disabling slab canaries
+build --flag_alias=disable_slab_canary=//build/kernel/kleaf:disable_slab_canary

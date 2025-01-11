@@ -245,6 +245,12 @@ bool_flag(
     visibility = ["//visibility:public"],
 )
 
+bool_flag(
+    name = "disable_slab_canary",
+    build_setting_default = True,
+    visibility = ["//visibility:public"],
+)
+
 # Additional symbol lists to add to GKI kernel build
 label_flag(
     name = "user_kmi_symbol_lists",
@@ -487,6 +493,7 @@ print_flags(
         ":kbuild_symtypes",
         ":lto",
         ":disable_32bit",
+        ":disable_slab_canary",
     ] + [":config_" + value for value in _config_values],
 )
 

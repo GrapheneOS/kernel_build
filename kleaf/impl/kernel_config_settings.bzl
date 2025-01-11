@@ -79,6 +79,7 @@ def _kernel_build_config_settings_raw():
             "_kcsan": "//build/kernel/kleaf:kcsan",
             "_preserve_kbuild_output": "//build/kernel/kleaf:preserve_kbuild_output",
             "_disable_32bit": "//build/kernel/kleaf:disable_32bit",
+            "_disable_slab_canary": "//build/kernel/kleaf:disable_slab_canary",
         },
     )
 
@@ -97,6 +98,7 @@ def _kernel_config_config_settings_raw():
             "kcsan": "//build/kernel/kleaf:kcsan",
             "gcov": "//build/kernel/kleaf:gcov",
             "disable_32bit": "//build/kernel/kleaf:disable_32bit",
+            "disable_slab_canary": "//build/kernel/kleaf:disable_slab_canary",
         },
     )
 
