@@ -435,6 +435,18 @@ def _config_disable_32bit(ctx):
 
     return struct(configs = configs, deps = [])
 
+def _config_disable_slab_canary(ctx):
+    disable_slab_canary = ctx.attr.disable_slab_canary[BuildSettingInfo].value
+
+    if not disable_slab_canary:
+        return struct(configs = [], deps = [])
+
+    configs = [
+        _config.disable("SLAB_CANARY"),
+    ]
+
+    return struct(configs = configs, deps = [])
+
 def _reconfig(ctx):
     """Return a command and extra inputs to re-configure `.config` file."""
     configs = []
@@ -454,6 +466,7 @@ def _reconfig(ctx):
         _config_gcov,
         _config_keys,
         _config_disable_32bit,
+        _config_disable_slab_canary,
         kgdb.get_scripts_config_args,
     ):
         pair = fn(ctx)
