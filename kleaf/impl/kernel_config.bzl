@@ -447,6 +447,19 @@ def _config_disable_slab_canary(ctx):
 
     return struct(configs = configs, deps = [])
 
+def _config_disable_randstruct(ctx):
+    disable_randstruct = ctx.attr.disable_randstruct[BuildSettingInfo].value
+
+    if not disable_randstruct:
+        return struct(configs = [], deps = [])
+
+    configs = [
+        _config.disable("RANDSTRUCT_FULL"),
+        _config.enable("MODVERSIONS"),
+    ]
+
+    return struct(configs = configs, deps = [])
+
 def _reconfig(ctx):
     """Return a command and extra inputs to re-configure `.config` file."""
     configs = []
@@ -467,6 +480,7 @@ def _reconfig(ctx):
         _config_keys,
         _config_disable_32bit,
         _config_disable_slab_canary,
+        _config_disable_randstruct,
         kgdb.get_scripts_config_args,
     ):
         pair = fn(ctx)

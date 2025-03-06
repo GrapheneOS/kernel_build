@@ -68,3 +68,6 @@ build --flag_alias=disable_32bit=//build/kernel/kleaf:disable_32bit
 
 # flag for disabling slab canaries
 build --flag_alias=disable_slab_canary=//build/kernel/kleaf:disable_slab_canary
+
+# flag for disabling struct randomization
+build --flag_alias=disable_randstruct=//build/kernel/kleaf:disable_randstruct
