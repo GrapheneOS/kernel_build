@@ -384,6 +384,9 @@ function build_flattened_dlkm_image() {
   # Copy the flattened version of modules.load to the dist directory to be
   # consistent with the non-flattened output.
   cp ${staging_dir}/flatten/lib/modules/modules.load ${dist_dir}/${image_type}_dlkm.flatten.modules.load
+  if [[ -n $(find ${staging_dir} -name "modules.blocklist") ]]; then
+    cp $(find ${staging_dir} -name "modules.blocklist") ${staging_dir}/flatten/lib/modules
+  fi
 
   build_image "${staging_dir}/flatten" "${props_file}" \
   "${dist_dir}/${image_name}" /dev/null
