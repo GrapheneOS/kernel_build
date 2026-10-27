@@ -238,13 +238,22 @@ def parse_repo_manifest(repo_root: pathlib.Path, manifest: str) \
         # https://gerrit.googlesource.com/git-repo/+/master/docs/manifest-format.md#element-project
         path_below_repo = pathlib.Path(project.getAttribute("path") or
                                        project.getAttribute("name"))
-        realpath = repo_root / path_below_repo
-        if realpath.is_relative_to(kleaf_repo_dir):
-            ret[realpath.relative_to(kleaf_repo_dir)] = \
-                project.getAttribute("revision") or None
-        else:
+        candidate_paths = [path_below_repo]
+        for linkfile in project.getElementsByTagName("linkfile"):
+            if linkfile.getAttribute("src") == ".":
+                dest = linkfile.getAttribute("dest")
+                if dest:
+                    candidate_paths.append(pathlib.Path(dest))
+        matched = False
+        for candidate in candidate_paths:
+            realpath = repo_root / candidate
+            if realpath.is_relative_to(kleaf_repo_dir):
+                ret[realpath.relative_to(kleaf_repo_dir)] = \
+                    project.getAttribute("revision") or None
+                matched = True
+        if not matched:
             logging.warning("Skipping project %s because it is not below %s",
-                            realpath, kleaf_repo_dir)
+                            repo_root / path_below_repo, kleaf_repo_dir)
     return ret
 
 
@@ -328,12 +337,21 @@ class Stamp(object):
         return ret
 
     def init_for_dot_source_date_epoch_dir(self) -> None:
+        kleaf_repo_dir = pathlib.Path(".").resolve()
         self.kernel_dir = pathlib.Path(".source_date_epoch_dir").resolve()
         if not self.kernel_dir.is_dir():
             self.kernel_dir = None
         if self.kernel_dir:
-            self.kernel_rel = self.kernel_dir.relative_to(
-                pathlib.Path(".").resolve())
+            if self.kernel_dir.is_relative_to(kleaf_repo_dir):
+                self.kernel_rel = self.kernel_dir.relative_to(kleaf_repo_dir)
+            elif os.path.islink(".source_date_epoch_dir"):
+                link_target = kleaf_repo_dir / os.readlink(".source_date_epoch_dir")
+                if link_target.is_dir() and link_target.is_relative_to(kleaf_repo_dir):
+                    self.kernel_rel = link_target.relative_to(kleaf_repo_dir)
+                else:
+                    self.kernel_dir = None
+            else:
+                self.kernel_dir = None
 
     def main(self) -> int:
         scmversion_map = self.get_localversion_all()
