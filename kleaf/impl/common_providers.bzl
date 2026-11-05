@@ -489,6 +489,9 @@ KernelImagesInfo = provider(
         "base_kernel_files": """A [depset](https://bazel.build/extending/depsets) containing
             [Default outputs](https://docs.bazel.build/versions/main/skylark/rules.html#default-outputs)
             of the rule specified by `base_kernel`""",
+        "all_module_names": """`[kernel_build.module_outs]`(kernel.md#kernel_build-module_outs)
+            and `[kernel_build.module_implicit_outs]`(kernel.md#kernel_build-module_implicit_outs).
+        """,
     },
 )
 

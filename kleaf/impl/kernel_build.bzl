@@ -2257,6 +2257,7 @@ def _create_infos(
         base_kernel_label = base_kernel.label if base_kernel else None,
         outs = depset(all_output_files["outs"].values()),
         base_kernel_files = kbuild_mixed_tree_ret.base_kernel_files,
+        all_module_names = all_module_names,
     )
 
     gcov_info = GcovInfo(

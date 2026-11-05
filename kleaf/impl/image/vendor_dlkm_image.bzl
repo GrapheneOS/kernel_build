@@ -15,6 +15,7 @@
 Build vendor_dlkm.img for vendor modules.
 """
 
+load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//lib:shell.bzl", "shell")
 load(
     ":common_providers.bzl",
@@ -23,7 +24,6 @@ load(
 )
 load(
     ":image/image_utils.bzl",
-    "SYSTEM_DLKM_MODULES_LOAD_NAME",
     "SYSTEM_DLKM_STAGING_ARCHIVE_NAME",
     "VENDOR_DLKM_STAGING_ARCHIVE_NAME",
     "image_utils",
@@ -197,9 +197,11 @@ def _exclude_system_dlkm(ctx, modules_staging_dir):
     inputs = []
 
     if ctx.attr.system_dlkm_image:
+        system_dlkm_target = ctx.attr.system_dlkm_image
         system_dlkm_files = ctx.files.system_dlkm_image
         src_attr = "system_dlkm_image"
     elif ctx.attr.base_system_dlkm_image:
+        system_dlkm_target = ctx.attr.base_system_dlkm_image
         system_dlkm_files = ctx.files.base_system_dlkm_image
         src_attr = "base_system_dlkm_image"
     else:
@@ -210,27 +212,146 @@ def _exclude_system_dlkm(ctx, modules_staging_dir):
     system_dlkm_staging_archive = utils.find_file(
         name = SYSTEM_DLKM_STAGING_ARCHIVE_NAME,
         files = system_dlkm_files,
-        what = "{} ({} for {})".format(ctx.attr.base_system_dlkm_image.label, src_attr, ctx.label),
+        what = "{} ({} for {})".format(system_dlkm_target.label, src_attr, ctx.label),
         required = True,
     )
-    system_dlkm_modules_load = utils.find_file(
-        name = SYSTEM_DLKM_MODULES_LOAD_NAME,
-        files = system_dlkm_files,
-        what = "{} ({} for {})".format(ctx.attr.base_system_dlkm_image.label, src_attr, ctx.label),
-        required = True,
+    inputs.append(system_dlkm_staging_archive)
+
+    # Collect device-built module basenames so vendor overrides of unprotected
+    # GKI modules (in-tree or external) are not overwritten by system_dlkm or
+    # excluded from vendor_dlkm.
+    kernel_module_info = ctx.attr.kernel_modules_install[KernelModuleInfo]
+    external_module_basenames = sorted({
+        f.basename: None
+        for f in kernel_module_info.files.to_list()
+        if f.extension == "ko"
+    })
+    device_module_basenames_set = {name: None for name in external_module_basenames}
+
+    # Only treat kernel_build's in-tree module_outs as device overrides in mixed
+    # builds (when base_kernel is set). In single-kernel builds (base_kernel == None),
+    # kernel_build.module_outs contains the system_dlkm/GKI modules themselves.
+    images_info = kernel_module_info.kernel_build_infos.images_info
+    if images_info and images_info.base_kernel_label != None:
+        for mod in images_info.all_module_names:
+            device_module_basenames_set[paths.basename(mod)] = None
+    device_module_basenames = sorted(device_module_basenames_set)
+
+    device_module_basenames_file = ctx.actions.declare_file(
+        "{}/device_module_basenames.txt".format(ctx.label.name),
     )
-    inputs += [system_dlkm_staging_archive, system_dlkm_modules_load]
+    ctx.actions.write(
+        output = device_module_basenames_file,
+        content = ("\n".join(device_module_basenames) + "\n") if device_module_basenames else "",
+    )
+    inputs.append(device_module_basenames_file)
+
+    remove_overridden_intree_cmd = ""
+    if external_module_basenames:
+        external_module_basenames_file = ctx.actions.declare_file(
+            "{}/external_module_basenames.txt".format(ctx.label.name),
+        )
+        ctx.actions.write(
+            output = external_module_basenames_file,
+            content = "\n".join(external_module_basenames) + "\n",
+        )
+        inputs.append(external_module_basenames_file)
+        remove_overridden_intree_cmd = """
+            # Remove in-tree kernel/.../<mod>.ko overridden by external extra/.../<mod>.ko
+            # so depmod and flattened image creation only see the external override.
+              for modules_root_dir in {modules_staging_dir}/lib/modules/*; do
+                if [[ -d "${{modules_root_dir}}/kernel" ]]; then
+                  while IFS= read -r overridden_ko; do
+                    if [[ -n "${{overridden_ko}}" ]]; then
+                      rm -f "${{overridden_ko}}"
+                    fi
+                  done < <(
+                    find "${{modules_root_dir}}/kernel" -type f -name '*.ko' | awk '
+                      FILENAME == ARGV[1] {{
+                        if ($0 != "") {{
+                          ext[$0] = 1
+                        }}
+                        next
+                      }}
+                      {{
+                        base = $0
+                        sub(/^.*\\//, "", base)
+                        if (base in ext) {{
+                          print $0
+                        }}
+                      }}
+                    ' {external_module_basenames_file} -
+                  )
+                fi
+                if [[ -f "${{modules_root_dir}}/modules.order" ]]; then
+                  filtered_order="$(mktemp)"
+                  awk '
+                    FILENAME == ARGV[1] {{
+                      if ($0 != "") {{
+                        ext[$0] = 1
+                      }}
+                      next
+                    }}
+                    {{
+                      if ($0 ~ /^kernel\\//) {{
+                        base = $0
+                        sub(/^.*\\//, "", base)
+                        if (base in ext) {{
+                          next
+                        }}
+                      }}
+                      print $0
+                    }}
+                  ' {external_module_basenames_file} "${{modules_root_dir}}/modules.order" > "${{filtered_order}}"
+                  mv -f "${{filtered_order}}" "${{modules_root_dir}}/modules.order"
+                fi
+              done
+        """.format(
+            modules_staging_dir = modules_staging_dir,
+            external_module_basenames_file = external_module_basenames_file.path,
+        )
 
     cmd = """
-            # Extract modules from system_dlkm staging archive for depmod
+            {remove_overridden_intree_cmd}
+            # Extract non-overridden modules from system_dlkm staging archive for depmod
+            # and record their /lib/modules/<ver>/-relative paths.
               mkdir -p {modules_staging_dir}
-              tar xf {system_dlkm_staging_archive} --wildcards -C {modules_staging_dir} '*.ko'
-            # Ensure system_dlkm modules aren't loaded
-              cat {system_dlkm_modules_load} >> ${{DIST_DIR}}/modules.load
+              system_dlkm_extract_list="$(mktemp)"
+              : > "${{DIST_DIR}}/system_dlkm.modules"
+              tar tf {system_dlkm_staging_archive} | awk \\
+                -v extract_list="${{system_dlkm_extract_list}}" \\
+                -v rel_list="${{DIST_DIR}}/system_dlkm.modules" '
+                FILENAME == ARGV[1] {{
+                  if ($0 != "") {{
+                    dev[$0] = 1
+                  }}
+                  next
+                }}
+                $0 ~ /^(\\.\\/)?lib\\/modules\\/[^\\/]+\\/.*\\.ko$/ {{
+                  rel = $0
+                  sub(/^(\\.\\/)?lib\\/modules\\/[^\\/]+\\//, "", rel)
+                  base = rel
+                  sub(/^.*\\//, "", base)
+                  if (!(base in dev) && !(rel in seen)) {{
+                    seen[rel] = 1
+                    print $0 > extract_list
+                    print rel > rel_list
+                  }}
+                }}
+              ' {device_module_basenames_file} -
+              if [[ -s "${{system_dlkm_extract_list}}" ]]; then
+                tar xf {system_dlkm_staging_archive} -C {modules_staging_dir} -T "${{system_dlkm_extract_list}}"
+              fi
+              rm -f "${{system_dlkm_extract_list}}"
+            # Ensure system_dlkm modules aren't auto-loaded by vendor_dlkm
+              if [[ -s "${{DIST_DIR}}/system_dlkm.modules" ]]; then
+                cat "${{DIST_DIR}}/system_dlkm.modules" >> "${{DIST_DIR}}/modules.load"
+              fi
     """.format(
+        remove_overridden_intree_cmd = remove_overridden_intree_cmd,
         system_dlkm_staging_archive = system_dlkm_staging_archive.path,
         modules_staging_dir = modules_staging_dir,
-        system_dlkm_modules_load = system_dlkm_modules_load.path,
+        device_module_basenames_file = device_module_basenames_file.path,
     )
 
     return struct(cmd = cmd, inputs = inputs)

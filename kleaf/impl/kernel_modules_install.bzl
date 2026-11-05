@@ -252,6 +252,7 @@ def _kernel_modules_install_impl(ctx):
         KernelModuleInfo(
             kernel_build_infos = kernel_build_infos,
             modules_staging_dws_depset = depset([modules_staging_dws]),
+            files = depset(external_modules),
             packages = depset(transitive = [
                 target[KernelModuleInfo].packages
                 for target in ctx.attr.kernel_modules

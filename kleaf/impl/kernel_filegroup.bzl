@@ -435,6 +435,7 @@ def _kernel_filegroup_impl(ctx):
         base_kernel_label = None,
         outs = depset(transitive = [target.files for target in ctx.attr.outs]),
         base_kernel_files = depset(),
+        all_module_names = ctx.attr.all_module_names,
     )
     gcov_info = GcovInfo(gcno_mapping = None, gcno_dir = None)
 

@@ -369,27 +369,75 @@ function build_flattened_dlkm_image() {
     exit 1
   fi
 
-  mkdir -p ${staging_dir}/flatten/lib/modules
-  cp $(find ${staging_dir} -type f -name "*.ko") ${staging_dir}/flatten/lib/modules
+  local modules_root_dir
+  modules_root_dir=$(echo ${staging_dir}/lib/modules/*)
+
+  mkdir -p "${staging_dir}/flatten/lib/modules"
+  find "${modules_root_dir}" -type f -name "*.ko" -exec cp -t "${staging_dir}/flatten/lib/modules" {} +
+  if [[ "${image_type}" == "vendor" && -s "${dist_dir}/system_dlkm.modules" ]]; then
+    local -a system_dlkm_kos=()
+    local mod_path
+    while IFS= read -r mod_path; do
+      if [[ -n "${mod_path}" ]]; then
+        system_dlkm_kos+=("${staging_dir}/flatten/lib/modules/${mod_path##*/}")
+      fi
+    done < "${dist_dir}/system_dlkm.modules"
+    if (( ${#system_dlkm_kos[@]} > 0 )); then
+      rm -f "${system_dlkm_kos[@]}"
+    fi
+  fi
   # Copy required depmod artifacts and scrub required files to correct paths
-  cp $(find ${staging_dir} -name "modules.dep") ${staging_dir}/flatten/lib/modules
+  cp "${modules_root_dir}/modules.dep" "${staging_dir}/flatten/lib/modules"
   # Copy modules aliases definitions
-  cp $(find ${staging_dir} -name "modules.alias") ${staging_dir}/flatten/lib/modules
+  cp "${modules_root_dir}/modules.alias" "${staging_dir}/flatten/lib/modules"
+  if [[ -f "${modules_root_dir}/modules.softdep" ]]; then
+    cp "${modules_root_dir}/modules.softdep" "${staging_dir}/flatten/lib/modules"
+  fi
+  if [[ -f "${modules_root_dir}/modules.blocklist" ]]; then
+    cp "${modules_root_dir}/modules.blocklist" "${staging_dir}/flatten/lib/modules"
+  fi
+  if [[ -d "${staging_dir}/etc" ]]; then
+    cp -r "${staging_dir}/etc" "${staging_dir}/flatten/"
+  fi
   # Remove existing paths leaving just basenames
-  sed -i 's/\(kernel\|extra\)[^:[:space:]]*\/\([^:[:space:]]*\.ko\)/\2/g' ${staging_dir}/flatten/lib/modules/modules.dep
-  # Prefix /system/lib/modules/ for every module
-  sed -i "s#\([^:[:space:]]*\.ko\)#/${image_type}/lib/modules/\1#g" ${staging_dir}/flatten/lib/modules/modules.dep
-  cp $(find ${staging_dir} -name "modules.load") ${staging_dir}/flatten/lib/modules
-  sed -i 's#.*/##' ${staging_dir}/flatten/lib/modules/modules.load
+  sed -i 's/\(kernel\|extra\)[^:[:space:]]*\/\([^:[:space:]]*\.ko\)/\2/g' "${staging_dir}/flatten/lib/modules/modules.dep"
+  # Prefix /system/lib/modules/ for deduplicated system_dlkm modules and
+  # /${image_type}/lib/modules/ for modules belonging to this image.
+  if [[ "${image_type}" == "vendor" && -s "${dist_dir}/system_dlkm.modules" ]]; then
+    local flattened_dep
+    flattened_dep="$(mktemp)"
+    awk '
+      FILENAME == ARGV[1] {
+        if ($0 != "") {
+          sub(/^.*\//, "")
+          sys[$0] = 1
+        }
+        next
+      }
+      {
+        mod = $1
+        sub(/:$/, "", mod)
+        prefix = (mod in sys) ? "/system/lib/modules/" : "/vendor/lib/modules/"
+        line = prefix mod ":"
+        for (i = 2; i <= NF; i++) {
+          dep_prefix = ($i in sys) ? "/system/lib/modules/" : "/vendor/lib/modules/"
+          line = line " " dep_prefix $i
+        }
+        print line
+      }
+    ' "${dist_dir}/system_dlkm.modules" "${staging_dir}/flatten/lib/modules/modules.dep" > "${flattened_dep}"
+    mv -f "${flattened_dep}" "${staging_dir}/flatten/lib/modules/modules.dep"
+  else
+    sed -i "s#\([^:[:space:]]*\.ko\)#/${image_type}/lib/modules/\1#g" "${staging_dir}/flatten/lib/modules/modules.dep"
+  fi
+  cp "${modules_root_dir}/modules.load" "${staging_dir}/flatten/lib/modules"
+  sed -i 's#.*/##' "${staging_dir}/flatten/lib/modules/modules.load"
   # Copy the flattened version of modules.load to the dist directory to be
   # consistent with the non-flattened output.
-  cp ${staging_dir}/flatten/lib/modules/modules.load ${dist_dir}/${image_type}_dlkm.flatten.modules.load
-  if [[ -n $(find ${staging_dir} -name "modules.blocklist") ]]; then
-    cp $(find ${staging_dir} -name "modules.blocklist") ${staging_dir}/flatten/lib/modules
-  fi
+  cp "${staging_dir}/flatten/lib/modules/modules.load" "${dist_dir}/${image_type}_dlkm.flatten.modules.load"
 
   build_image "${staging_dir}/flatten" "${props_file}" \
-  "${dist_dir}/${image_name}" /dev/null
+    "${dist_dir}/${image_name}" /dev/null
 
 }
 
