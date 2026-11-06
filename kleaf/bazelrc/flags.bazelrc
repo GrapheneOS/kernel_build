@@ -47,6 +47,8 @@ build --flag_alias=user_kmi_symbol_lists=@kleaf//build/kernel/kleaf:user_kmi_sym
 build --flag_alias=user_ddk_unsafe_headers=@kleaf//build/kernel/kleaf:user_ddk_unsafe_headers
 
 # flags that control binary features
+build --flag_alias=disable_32bit=@kleaf//build/kernel/kleaf:disable_32bit
+build --flag_alias=nodisable_32bit=no@kleaf//build/kernel/kleaf:disable_32bit
 build --flag_alias=gcov=@kleaf//build/kernel/kleaf:gcov
 build --flag_alias=gcov_mode=@kleaf//build/kernel/kleaf:gcov_mode
 build --flag_alias=kasan=@kleaf//build/kernel/kleaf:kasan

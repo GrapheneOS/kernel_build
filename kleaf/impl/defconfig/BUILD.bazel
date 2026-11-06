@@ -53,6 +53,15 @@ exports_files([
 ]]
 
 filegroup(
+    name = "disable_32bit",
+    srcs = select({
+        "//build/kernel/kleaf:disable_32bit_is_true": ["disable_32bit_defconfig"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
     name = "debug",
     srcs = select({
         "//build/kernel/kleaf:debug_is_true": ["debug_defconfig"],
