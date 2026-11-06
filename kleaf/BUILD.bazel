@@ -324,6 +324,19 @@ bool_flag(
     visibility = ["//visibility:public"],
 )
 
+# Disable 32-bit userspace support.
+bool_flag(
+    name = "disable_32bit",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "disable_32bit_is_true",
+    flag_values = {":disable_32bit": "1"},
+    visibility = ["//visibility:public"],
+)
+
 # Additional symbol lists to add to GKI kernel build
 label_flag(
     name = "user_kmi_symbol_lists",
@@ -738,6 +751,7 @@ bool_flag(
 print_flags(
     name = "print_flags",
     flags = [
+        ":disable_32bit",
         ":kasan",
         ":kasan_sw_tags",
         ":kasan_generic",
