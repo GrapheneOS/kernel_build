@@ -337,6 +337,19 @@ config_setting(
     visibility = ["//visibility:public"],
 )
 
+# Disable slab canaries.
+bool_flag(
+    name = "disable_slab_canary",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "disable_slab_canary_is_true",
+    flag_values = {":disable_slab_canary": "1"},
+    visibility = ["//visibility:public"],
+)
+
 # Additional symbol lists to add to GKI kernel build
 label_flag(
     name = "user_kmi_symbol_lists",
@@ -752,6 +765,7 @@ print_flags(
     name = "print_flags",
     flags = [
         ":disable_32bit",
+        ":disable_slab_canary",
         ":kasan",
         ":kasan_sw_tags",
         ":kasan_generic",

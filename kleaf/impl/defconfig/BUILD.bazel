@@ -62,6 +62,15 @@ filegroup(
 )
 
 filegroup(
+    name = "disable_slab_canary",
+    srcs = select({
+        "//build/kernel/kleaf:disable_slab_canary_is_true": ["disable_slab_canary_defconfig"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
     name = "debug",
     srcs = select({
         "//build/kernel/kleaf:debug_is_true": ["debug_defconfig"],
