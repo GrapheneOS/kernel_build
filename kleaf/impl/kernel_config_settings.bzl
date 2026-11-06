@@ -63,6 +63,7 @@ def _kernel_build_config_settings_raw():
             "_kcov": "//build/kernel/kleaf:kcov",
             "_kcsan": "//build/kernel/kleaf:kcsan",
             "_preserve_kbuild_output": "//build/kernel/kleaf:preserve_kbuild_output",
+            "_disable_32bit": "//build/kernel/kleaf:disable_32bit",
         },
     )
 
