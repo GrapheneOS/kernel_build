@@ -2595,6 +2595,14 @@ def _kmi_symbol_list_strict_mode(ctx, all_output_files, all_module_names):
     if _skip_build_checks(ctx, what = "Attribute kmi_symbol_list_strict_mode"):
         return None
 
+    if ctx.attr._disable_32bit[BuildSettingInfo].value:
+        # buildifier: disable=print
+        print("\nWARNING: {this_label}: Attribute kmi_symbol_list_strict_mode\
+              IGNORED because --disable_32bit is set!".format(
+            this_label = ctx.label,
+        ))
+        return None
+
     if not ctx.attr.kmi_symbol_list_strict_mode:
         return None
     if not ctx.files.raw_kmi_symbol_list:
