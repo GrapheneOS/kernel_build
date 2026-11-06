@@ -994,6 +994,7 @@ def _get_post_defconfig_fragments_inherited(
         Label("//build/kernel/kleaf:defconfig_fragment"),
         Label("//build/kernel/kleaf/impl/defconfig:debug"),
         Label("//build/kernel/kleaf/impl/defconfig:disable_32bit"),
+        Label("//build/kernel/kleaf/impl/defconfig:disable_slab_canary"),
         Label("//build/kernel/kleaf/impl/defconfig:gcov_mode"),
         Label("//build/kernel/kleaf/impl/defconfig:kcov"),
         Label("//build/kernel/kleaf/impl/defconfig:rust"),
