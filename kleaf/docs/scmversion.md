@@ -65,6 +65,9 @@ localversion instead of calling `scripts/setlocalversion`. The script is
 not branch-specific and does not include the 5-digit number of patches beyond
 the tag.
 
+`--localversion_suffix=-example` appends `-example` to the generated
+`localversion` file for the kernel and its module builds. The default is empty.
+
 ### Testing
 
 To ensure the artifact `vmlinux` contains SCM version properly, you may check

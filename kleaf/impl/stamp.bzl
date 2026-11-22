@@ -83,7 +83,6 @@ def _write_localversion(ctx):
                 echo "Invalid KMI_GENERATION $KMI_GENERATION" >&2
                 exit 1
             fi
-            scmversion=""
             stable_scmversion=$({stable_scmversion_cmd})
             scmversion_prefix=
             if [[ "$android_release" == "mainline" ]]; then
@@ -97,10 +96,10 @@ def _write_localversion(ctx):
                 echo "No Android release can be extracted from BRANCH=${{BRANCH}} but KMI_GENERATION is ${{KMI_GENERATION}}" >&2
                 exit 1
             fi
-            scmversion="${{scmversion_prefix}}${{stable_scmversion}}"
-            echo $scmversion
+            printf '%s%s\\n' "${{scmversion_prefix}}${{stable_scmversion}}" {localversion_suffix}
         ) > {out_path}
     """.format(
+        localversion_suffix = shell.quote(ctx.attr._localversion_suffix[BuildSettingInfo].value),
         stable_scmversion_cmd = stable_scmversion_cmd,
         out_path = out_file.path,
     )

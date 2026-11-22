@@ -26,6 +26,12 @@ load(":print_flags.bzl", "print_flags")
 
 # Build flags
 
+string_flag(
+    name = "localversion_suffix",
+    build_setting_default = "",
+    visibility = ["//visibility:public"],
+)
+
 # LTO setting. Values can be one of default, none, thin, full
 string_flag(
     name = "lto",

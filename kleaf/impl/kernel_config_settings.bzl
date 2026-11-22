@@ -74,7 +74,9 @@ def _kernel_build_config_settings():
     }
 
 def _kernel_config_config_settings_raw():
-    return kgdb.config_settings_raw()
+    return kgdb.config_settings_raw() | {
+        "_localversion_suffix": "//build/kernel/kleaf:localversion_suffix",
+    }
 
 def _kernel_config_config_settings():
     return {

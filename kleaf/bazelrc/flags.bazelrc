@@ -66,6 +66,7 @@ build --flag_alias=noset_ext_modules=no@kleaf//build/kernel/kleaf:set_ext_module
 build --flag_alias=gki_build_config_fragment=@kleaf//build/kernel/kleaf:gki_build_config_fragment
 build --flag_alias=defconfig_fragment=@kleaf//build/kernel/kleaf:defconfig_fragment
 build --flag_alias=page_size=@kleaf//build/kernel/kleaf:page_size
+build --flag_alias=localversion_suffix=@kleaf//build/kernel/kleaf:localversion_suffix
 build --flag_alias=rust=@kleaf//build/kernel/kleaf:rust
 build --flag_alias=norust=no@kleaf//build/kernel/kleaf:rust
 build --flag_alias=rust_ashmem=@kleaf//build/kernel/kleaf:rust_ashmem
